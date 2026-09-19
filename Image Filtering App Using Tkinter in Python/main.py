@@ -7,10 +7,11 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk, ImageFilter, ImageOps, ImageEnhance
 
+
 class ImageFilterApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Image Filtering App")
+        self.root.title("MASA VisionFilters Studio")
         self.root.geometry("1500x750")
         self.root.configure(bg="#eaeaea")
 
@@ -19,65 +20,96 @@ class ImageFilterApp:
         self.tk_original = None
         self.tk_filtered = None
 
-        # History: [(image, description, thumbnail)]
         self.history = []
         self.future = []
-        self.history_thumbnails = []  # keep references
+        self.history_thumbnails = []
 
-        # Last slider values
         self.last_slider_values = (0, 1.0, 1.0)
 
         btn_frame = tk.Frame(root, bg="#eaeaea")
         btn_frame.pack(side=tk.TOP, pady=10)
 
         tk.Button(btn_frame, text="Open Image", command=self.open_image).grid(row=0, column=0, padx=5)
-        tk.Button(btn_frame, text="Grayscale", command=lambda: self.apply_filter("Grayscale", lambda img: ImageOps.grayscale(img).convert("RGB"))).grid(row=0, column=1, padx=5)
-        tk.Button(btn_frame, text="Invert", command=lambda: self.apply_filter("Invert", lambda img: ImageOps.invert(img))).grid(row=0, column=2, padx=5)
-        tk.Button(btn_frame, text="Sharpen", command=lambda: self.apply_filter("Sharpen", lambda img: img.filter(ImageFilter.SHARPEN))).grid(row=0, column=3, padx=5)
-        tk.Button(btn_frame, text="Edge Enhance", command=lambda: self.apply_filter("Edge Enhance", lambda img: img.filter(ImageFilter.EDGE_ENHANCE))).grid(row=0, column=4, padx=5)
-        tk.Button(btn_frame, text="Reset Image", command=self.reset_image, bg="#f39c12", fg="white").grid(row=0, column=5, padx=5)
-        tk.Button(btn_frame, text="Undo", command=self.undo, bg="#3498db", fg="white").grid(row=0, column=6, padx=5)
-        tk.Button(btn_frame, text="Redo", command=self.redo, bg="#9b59b6", fg="white").grid(row=0, column=7, padx=5)
-        tk.Button(btn_frame, text="Save Image", command=self.save_image, bg="#4CAF50", fg="white").grid(row=0, column=8, padx=5)
+        tk.Button(
+            btn_frame,
+            text="Grayscale",
+            command=lambda: self.apply_filter(
+                "Grayscale", lambda img: ImageOps.grayscale(img).convert("RGB")
+            ),
+        ).grid(row=0, column=1, padx=5)
+        tk.Button(
+            btn_frame,
+            text="Invert",
+            command=lambda: self.apply_filter("Invert", lambda img: ImageOps.invert(img)),
+        ).grid(row=0, column=2, padx=5)
+        tk.Button(
+            btn_frame,
+            text="Sharpen",
+            command=lambda: self.apply_filter("Sharpen", lambda img: img.filter(ImageFilter.SHARPEN)),
+        ).grid(row=0, column=3, padx=5)
+        tk.Button(
+            btn_frame,
+            text="Edge Enhance",
+            command=lambda: self.apply_filter(
+                "Edge Enhance", lambda img: img.filter(ImageFilter.EDGE_ENHANCE)
+            ),
+        ).grid(row=0, column=4, padx=5)
+        tk.Button(btn_frame, text="Reset Image", command=self.reset_image, bg="#f39c12", fg="white").grid(
+            row=0, column=5, padx=5
+        )
+        tk.Button(btn_frame, text="Undo", command=self.undo, bg="#3498db", fg="white").grid(
+            row=0, column=6, padx=5
+        )
+        tk.Button(btn_frame, text="Redo", command=self.redo, bg="#9b59b6", fg="white").grid(
+            row=0, column=7, padx=5
+        )
+        tk.Button(btn_frame, text="Save Image", command=self.save_image, bg="#4CAF50", fg="white").grid(
+            row=0, column=8, padx=5
+        )
 
-        # Sliders
         slider_frame = tk.Frame(root, bg="#eaeaea")
         slider_frame.pack(side=tk.TOP, pady=10)
 
         tk.Label(slider_frame, text="Blur", bg="#eaeaea").grid(row=0, column=0)
-        self.blur_slider = tk.Scale(slider_frame, from_=0, to=10, orient=tk.HORIZONTAL, command=self.adjust_filters)
+        self.blur_slider = tk.Scale(
+            slider_frame, from_=0, to=10, orient=tk.HORIZONTAL, command=self.adjust_filters
+        )
         self.blur_slider.grid(row=0, column=1, padx=10)
 
         tk.Label(slider_frame, text="Brightness", bg="#eaeaea").grid(row=0, column=2)
-        self.brightness_slider = tk.Scale(slider_frame, from_=0.5, to=2.0, resolution=0.1, orient=tk.HORIZONTAL, command=self.adjust_filters)
+        self.brightness_slider = tk.Scale(
+            slider_frame, from_=0.5, to=2.0, resolution=0.1, orient=tk.HORIZONTAL, command=self.adjust_filters
+        )
         self.brightness_slider.set(1.0)
         self.brightness_slider.grid(row=0, column=3, padx=10)
 
         tk.Label(slider_frame, text="Contrast", bg="#eaeaea").grid(row=0, column=4)
-        self.contrast_slider = tk.Scale(slider_frame, from_=0.5, to=2.0, resolution=0.1, orient=tk.HORIZONTAL, command=self.adjust_filters)
+        self.contrast_slider = tk.Scale(
+            slider_frame, from_=0.5, to=2.0, resolution=0.1, orient=tk.HORIZONTAL, command=self.adjust_filters
+        )
         self.contrast_slider.set(1.0)
         self.contrast_slider.grid(row=0, column=5, padx=10)
 
-        # Canvas for Original and Filtered
         self.canvas = tk.Canvas(root, bg="white")
         self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         self.canvas.create_text(300, 30, text="Original Image", font=("Arial", 14, "bold"))
         self.canvas.create_text(850, 30, text="Filtered Image", font=("Arial", 14, "bold"))
 
-        # History Panel with thumbnails
         history_frame = tk.Frame(root, bg="#dcdcdc", width=280)
         history_frame.pack(side=tk.RIGHT, fill=tk.Y)
 
         tk.Label(history_frame, text="History", bg="#dcdcdc", font=("Arial", 14, "bold")).pack(pady=5)
 
         self.history_canvas = tk.Canvas(history_frame, bg="#f5f5f5", width=260)
-        self.history_scrollbar = tk.Scrollbar(history_frame, orient=tk.VERTICAL, command=self.history_canvas.yview)
+        self.history_scrollbar = tk.Scrollbar(
+            history_frame, orient=tk.VERTICAL, command=self.history_canvas.yview
+        )
         self.scrollable_frame = tk.Frame(self.history_canvas, bg="#f5f5f5")
 
         self.scrollable_frame.bind(
             "<Configure>",
-            lambda e: self.history_canvas.configure(scrollregion=self.history_canvas.bbox("all"))
+            lambda e: self.history_canvas.configure(scrollregion=self.history_canvas.bbox("all")),
         )
         self.history_canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         self.history_canvas.configure(yscrollcommand=self.history_scrollbar.set)
@@ -89,7 +121,7 @@ class ImageFilterApp:
         thumb = img_copy.copy()
         thumb.thumbnail((80, 80))
         tk_thumb = ImageTk.PhotoImage(thumb)
-        self.history_thumbnails.append(tk_thumb)  # prevent garbage collection
+        self.history_thumbnails.append(tk_thumb)
 
         frame = tk.Frame(self.scrollable_frame, bg="#eeeeee", bd=1, relief=tk.SOLID)
         frame.pack(fill=tk.X, padx=5, pady=3)
@@ -100,10 +132,9 @@ class ImageFilterApp:
         lbl_text = tk.Label(frame, text=desc, bg="#eeeeee", anchor="w", font=("Arial", 9))
         lbl_text.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
 
-        # clicking on thumbnail jumps to history
-        frame.bind("<Button-1>", lambda e, idx=len(self.history)-1: self.jump_to_history(idx))
-        lbl_img.bind("<Button-1>", lambda e, idx=len(self.history)-1: self.jump_to_history(idx))
-        lbl_text.bind("<Button-1>", lambda e, idx=len(self.history)-1: self.jump_to_history(idx))
+        frame.bind("<Button-1>", lambda e, idx=len(self.history) - 1: self.jump_to_history(idx))
+        lbl_img.bind("<Button-1>", lambda e, idx=len(self.history) - 1: self.jump_to_history(idx))
+        lbl_text.bind("<Button-1>", lambda e, idx=len(self.history) - 1: self.jump_to_history(idx))
 
     def push_history(self, description):
         if self.image:
@@ -149,9 +180,15 @@ class ImageFilterApp:
 
     def adjust_filters(self, event=None):
         if self.original_image:
-            current_values = (self.blur_slider.get(), self.brightness_slider.get(), self.contrast_slider.get())
+            current_values = (
+                self.blur_slider.get(),
+                self.brightness_slider.get(),
+                self.contrast_slider.get(),
+            )
             if current_values != self.last_slider_values:
-                desc = f"Blur={current_values[0]}, Brightness={current_values[1]}, Contrast={current_values[2]}"
+                desc = (
+                    f"Blur={current_values[0]}, Brightness={current_values[1]}, Contrast={current_values[2]}"
+                )
                 self.push_history(desc)
                 self.last_slider_values = current_values
 
@@ -179,7 +216,6 @@ class ImageFilterApp:
             self.image = self.history[-1][0].copy()
             self.display_images()
 
-            # remove last thumbnail
             self.scrollable_frame.winfo_children()[-1].destroy()
             self.history_thumbnails.pop()
 
@@ -198,11 +234,14 @@ class ImageFilterApp:
 
     def save_image(self):
         if self.image:
-            file_path = filedialog.asksaveasfilename(defaultextension=".png",
-                filetypes=[("PNG files", "*.png"), ("JPEG files", "*.jpg"), ("BMP files", "*.bmp")])
+            file_path = filedialog.asksaveasfilename(
+                defaultextension=".png",
+                filetypes=[("PNG files", "*.png"), ("JPEG files", "*.jpg"), ("BMP files", "*.bmp")],
+            )
             if file_path:
                 self.image.save(file_path)
                 messagebox.showinfo("Image Saved", f"Image successfully saved at:\n{file_path}")
+
 
 if __name__ == "__main__":
     root = tk.Tk()
